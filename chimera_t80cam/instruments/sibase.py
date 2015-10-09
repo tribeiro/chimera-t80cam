@@ -346,14 +346,14 @@ class SIBase(CameraBase):
     def getPixelSize(self):
         xsize, ysize = self.getPhysicalSize()
 
-        length, heigth = 0, 0
+        length, height = 9., 9.
         for i in range(len(self.pars)):
             if "Image Area Size X" in self.pars[i]:
                 length = float(self.pars[i][2])  # /xsize
             elif "Image Area Size Y" in self.pars[i]:
-                heigth = float(self.pars[i][2])  # /ysize
+                height = float(self.pars[i][2])  # /ysize
 
-        return length, heigth
+        return 9.,9. #length, height
 
     def getOverscanSize(self, ccd=None):
         # ToDo: Select CCD
@@ -618,6 +618,7 @@ class SIBase(CameraBase):
             width, height) = self._getReadoutModeInfo(imageRequest["binning"],
                                                       imageRequest["window"])
             binFactor = self._binning_factors[binning]
+
             pix_w, pix_h = self.getPixelSize()
 
             if self["telescope_focal_length"] is not None:  # If there is no telescope_focal_length defined, don't store WCS
