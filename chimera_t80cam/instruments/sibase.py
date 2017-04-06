@@ -764,86 +764,18 @@ class SIBase(CameraBase):
             self.log.debug('Local mode with SI header file. Saving file to %s' % (os.path.join(self["local_path"],
                                                                                                filename)))
 
-            # Creating image header...
-            extraHeaders = {'ccdtemp': self.getTemperature(),
-                       'itemp': self["instrumentTemperature"],
-                       'exptime': imageRequest['exptime'],
-                       }
-
-            chimeraCards = [('DATE-OBS', ImageUtil.formatDate(self.__lastFrameStart), 'Date exposure started'),
-                            ('CCD-TEMP', extraHeaders["ccdtemp"], 'CCD Temperature at Exposure Start [deg. C]'),
-                            ("EXPTIME", float(imageRequest['exptime']) or 0., "exposure time in seconds"),
-                            ('IMAGETYP', imageRequest['type'].strip(), 'Image type'),
-                            ('SHUTTER', str(imageRequest['shutter']), 'Requested shutter state'),
-                            ('INSTRUME', str(self['camera_model']), 'Name of instrument'),
-                            ('CCD', str(self['ccd_model']), 'CCD Model'),
-                            ('CCD_DIMX', self.getPhysicalSize()[0], 'CCD X Dimension Size'),
-                            ('CCD_DIMY', self.getPhysicalSize()[1], 'CCD Y Dimension Size'),
-                            ('CCDPXSZX', self.getPixelSize()[0], 'CCD X Pixel Size [micrometer]'),
-                            ('CCDPXSZY', self.getPixelSize()[1], 'CCD Y Pixel Size [micrometer]'),
-                            ('FILENAME', os.path.basename(filename)),
-                            ("DATE", ImageUtil.formatDate(dt.datetime.utcnow()), "date of file creation"),
-                            ("AUTHOR", _chimera_name_, _chimera_long_description_),
-                            ('INSTRUME', str(self['camera_model']), 'Custom. Name of instrument'),
-                            ('TEMP', extraHeaders["ccdtemp"], 'HIERARCH T80S DET/Chip temperature (C) '),
-                            ]
-
-            (mode, binning, top, left,
-            width, height) = self._getReadoutModeInfo(imageRequest["binning"],
-                                                      imageRequest["window"])
-            binFactor = self._binning_factors[binning]
-            pix_w, pix_h = self.getPixelSize() # hdu[0].header[self['ccdsize_x']] / hdu[0].header[self['']]
-
-            if self["telescope_focal_length"] is not None:  # If there is no telescope_focal_length defined, don't store WCS
-                focal_length = self["telescope_focal_length"]
-
-                scale_x = binFactor * (((180 / N.pi) / focal_length) * (pix_w * 0.001))
-                scale_y = binFactor * (((180 / N.pi) / focal_length) * (pix_h * 0.001))
-
-                full_width, full_height = self.getPhysicalSize()
-                CRPIX1 = ((int(full_width / 2.0)) - left) - 1
-                CRPIX2 = ((int(full_height / 2.0)) - top) - 1
-                # Todo: Check telescope pier side
-                parity_y = self["parity_y"]
-                parity_x = self["parity_x"]
-                # Adding WCS coordinates according to FITS standard.
-                # Quick sheet: http://www.astro.iag.usp.br/~moser/notes/GAi_FITSimgs.html
-                # http://adsabs.harvard.edu/abs/2002A%26A...395.1061G
-                # http://adsabs.harvard.edu/abs/2002A%26A...395.1077C
-                chimeraCards += [("CRPIX1", CRPIX1, "coordinate system reference pixel"),
-                    ("CRPIX2", CRPIX2, "coordinate system reference pixel"),
-                    ("CD1_1", parity_x * scale_x * N.cos(self["rotation"]*N.pi/180.),
-                     "transformation matrix element (1,1)"),
-                    ("CD1_2", -parity_y * scale_y * N.sin(self["rotation"]*N.pi/180.),
-                     "transformation matrix element (1,2)"),
-                    ("CD2_1", parity_x * scale_x * N.sin(self["rotation"]*N.pi/180.),
-                     "transformation matrix element (2,1)"),
-                    ("CD2_2", parity_y * scale_y * N.cos(self["rotation"]*N.pi/180.),
-                     "transformation matrix element (2,2)")]
-
-
-            chimeraCards += [
-                    ('OPER', 'CHIMERA', 'HIERARCH T80S INS/'),
-                    ('PIXSCALE', '%.3f'%(scale_x*3600.), 'HIERARCH T80S INS/Pixel scale (arcsec)'),
-                    ('TEMP', itemp, 'HIERARCH T80S INS/Instrument temperature'),
-                    ('NAME', self["detectorname"], 'HIERARCH T80S DET/Name of detector system '),
-                    ('NX', hdu[0].header['NAXIS1'], 'HIERARCH T80S DET/Number of pixels along X '),
-                    ('NY', hdu[0].header['NAXIS2'], 'HIERARCH T80S DET/Number of pixels along Y'),
-                    ('PSZX', pix_w, 'HIERARCH T80S DET/Size of pixel in X (mu) '),
-                    ('PSZY', pix_h, 'HIERARCH T80S DET/Size of pixel in Y (mu) '),
-                    ('REQTIM', float(imageRequest['exptime']),
-                     'HIERARCH T80S DET/Requested exposure time (sec)')]
-            
-
-            with open(self["header_file"],'w') as fp:
-                for icard, card in enumerate(chimeraCards):
-                    fp.write('[Entry %i]\nType=String\n' % (icard+1))
-                    fp.write('Keyword=%s\n' % card[0])
-                    fp.write('Value="%s"\n' % card[1])
-                    fp.write('Comment="%s"\n' % card[2])
+            with open(self["header_file"], 'w') as fp:
+                fp.write('[Entry 1]\n'
+                         'Type=String\n'
+                         'Keyword=CHM_ID\n'
+                         'Value="%s"\n'
+                         'Comment="Chimera ID"\n' % Pyro.util.getGUID())
 
             self.client.executeCommand(SetSaveToFolderPath(self['local_path']))
             self.client.executeCommand(SaveImage(filename, 'I16'))
+            server = getImageServer(self.getManager())
+            img = Image.fromFile(os.path.join(self['local_path'], filename.replace('.fits', '.FIT')))
+            proxy = server.register(img)
 
 
         else:
