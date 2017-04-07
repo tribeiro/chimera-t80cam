@@ -764,7 +764,7 @@ class SIBase(CameraBase):
 
             path, filename = os.path.split(ImageUtil.makeFilename(filename))
 
-            with open(r"C:\Users\Public\Public Documents\SI Image SGL II -\Other Parameters.txt", 'w') as fp:
+            with open(r"C:\Users\Public\Documents\SI Image SGL II -\Other Parameters.txt", 'w') as fp:
                 fp.write('[Entry 1]\n'
                          'Type=String\n'
                          'Keyword=CHM_ID\n'
