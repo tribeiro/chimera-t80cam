@@ -774,6 +774,8 @@ class SIBase(CameraBase):
             self.client.executeCommand(SetSaveToFolderPath(self['local_path']))
             # self.client.executeCommand(SaveImage(self['local_filename'], 'I16'))
             self.client.executeCommand(SaveImage(filename, 'I16'))
+            os.rename(os.path.join(self['local_path'], filename.replace('.fits', '.FIT')),
+                      os.path.join(self['local_path'], filename))
             # self.releaseExposure()
             # self.unlockExposure()
 
