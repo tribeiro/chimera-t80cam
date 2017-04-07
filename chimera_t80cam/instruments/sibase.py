@@ -16,7 +16,7 @@ from si.client import SIClient, AckException
 from si.commands.camera import *
 from si.packet import Packet
 from si.packets.ack import Ack
-
+import Pyro.util
 from chimera.interfaces.camera import (CCD, CameraFeature, ReadoutMode,
                                        InvalidReadoutMode, CameraStatus,
                                        Shutter)
@@ -764,8 +764,16 @@ class SIBase(CameraBase):
 
             path, filename = os.path.split(ImageUtil.makeFilename(filename))
 
+            with open(r"C:\Users\Public\Public Documents\SI Image SGL II -\Other Parameters.txt", 'w') as fp:
+                fp.write('[Entry 1]\n'
+                         'Type=String\n'
+                         'Keyword=CHM_ID\n'
+                         'Value="%s"\n'
+                         'Comment="Chimera ID"\n' % Pyro.util.getGUID())
+
             self.client.executeCommand(SetSaveToFolderPath(self['local_path']))
-            self.client.executeCommand(SaveImage(self['local_filename'], 'I16'))
+            # self.client.executeCommand(SaveImage(self['local_filename'], 'I16'))
+            self.client.executeCommand(SaveImage(filename, 'I16'))
             # self.releaseExposure()
             # self.unlockExposure()
 
@@ -823,13 +831,13 @@ class SIBase(CameraBase):
                 gc.collect()
                 return extraHeaders
 
-            try:
-                extraHeaders = cleanHeader(True)
-            except MemoryError, e:
-                self.log.exception(e)
-                raise
-            finally:
-                self._cleanQueueLock.release()
+            # try:
+            #     extraHeaders = cleanHeader(True)
+            # except MemoryError, e:
+            #     self.log.exception(e)
+            #     raise
+            # finally:
+            self._cleanQueueLock.release()
 
             # From now on camera is ready to take new exposures, will return and finish header on a different thread
             self.log.debug('Registering image and creating proxy. PP')
